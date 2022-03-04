@@ -9,5 +9,5 @@ The only values to change in the .xml files are the date (YYYY-MM-DD) and the MO
 
 Choose the 4326 CRS to allow the MODIS imagery to be directly overlaid on BSOSE/ ISO-SAF data without needing to reproject. 
 
-The gdal_translate commands contained within the corresponding .sh files can be directly run in a shell script. The bounding box coordinates are currently set to extract imagery from the South Weddle Sea, but can also be altered. 
+The gdal_translate commands contained within the corresponding .sh files can be directly run in a shell script. The bounding box coordinates are currently set to extract imagery from the South Weddell Sea. 
 
