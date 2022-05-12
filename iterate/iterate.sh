@@ -1,14 +1,17 @@
-#!bin/bash
+#!/bin/bash
 while read -r ARGSTR; do
+  # There are some blank lines in coords.txt, so check that the line isn't empty!
+  # Obviously a good next step would be to validate the fields to be ultra defensive (just good practise!)
+  if [ ${#ARGSTR} -eq 0 ]; then
+    echo "This line has no obvious data..."
+    continue
+  fi
+
   FILENAME=`echo $ARGSTR | awk -F, '{ print $2 }'`
   echo $FILENAME
-  COORD_1=`echo $ARGSTR | awk -F, '{ print $3}'`
-  COORD_2=`echo $ARGSTR | awk -F, '{ print $4}'`
-  COORD_3=`echo $ARGSTR | awk -F, '{ print $5}'`
-  COORD_4=`echo $ARGSTR | awk -F, '{ print $6}'`
+  COORDS=`echo $ARGSTR | awk -F, '{ print $3 " " $4 " " $5 " " $6 }'`
   DATE=`echo $ARGSTR | awk -F, '{print $1}'`
   echo $DATE
-  echo $COORD_1
-  sed -r 's/DATE/$DATE/g' bands367_3031.xml >template.xml
-  gdal_translate -of GTiff -projwin $COORD_1 $COORD_2 $COORD_3 $COORD_4 bands367_3031.xml $FILENAME
+  sed -r "s/DATE/$DATE/g" bands367_3031.xml >template.xml
+  gdal_translate -of GTiff -projwin $COORDS bands367_3031.xml $FILENAME
 done < coords.txt
