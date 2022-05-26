@@ -17,13 +17,14 @@ import skimage.measure
 import pandas as pd
 import xarray as xr
 
-class CreateModisNetCDF():
+class CreateModisNetCDF(input_image, output_netcdf, date):
     def __init__(self):
 
 
-        self.fn="***.tiff"
+        self.fn=input_image
         self.ds = gdal.Open(self.fn)
-        self.outfile="***.nc"
+        self.date=date
+        self.outfile=output_netcdf
         self.pool_size=24
         self.coordinateList=[]
         self.temporaryList=[]
@@ -108,7 +109,7 @@ class CreateModisNetCDF():
                 outCoord=a.pixel2coord((i*pool),(j*pool))
                 outVal=classifyPooled[i,j]
                 cloudVal=cloud_classified[i,j]
-                time='19-02-2017'
+                time=self.date
                 listTemp=[outCoord[0], outCoord[1], time, outVal, cloudVal]
                 coordinateList.append(listTemp)
         
@@ -122,6 +123,9 @@ class CreateModisNetCDF():
         print("Saving to file:", outfile)
         ncdf.to_netcdf(outfile)
         
-        
-a=CreateModisNetCDF()
+
+input_image=""
+output_netcdf""
+date=""
+a=CreateModisNetCDF(input_image, output_netcdf, date)
 a.createNetCDF()
