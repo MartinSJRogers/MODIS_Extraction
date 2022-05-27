@@ -1,6 +1,8 @@
+#!/usr/bin/env python
+
 """
 
-MODIS preprocess steps to enable incorproation into digital twin route planner.
+MODIS preprocess steps to enable incorporation into digital twin route planner.
 
 Bin MODIS pixel values into categories 0-10 as a proxy for Sea Ice concentration (SIC)
 Threshold pixels into cloud present (1) or absent (0)
@@ -16,19 +18,19 @@ from osgeo import gdal
 import skimage.measure
 import pandas as pd
 import xarray as xr
-
-class CreateModisNetCDF(input_image, output_netcdf, date):
-    def __init__(self):
+import sys
 
 
-        self.fn=input_image
+class CreateModisNetCDF:
+    def __init__(self, input_image, output_netcdf, date):
+
+        self.fn = input_image
         self.ds = gdal.Open(self.fn)
-        self.date=date
-        self.outfile=output_netcdf
-        self.pool_size=24
-        self.coordinateList=[]
-        self.temporaryList=[]
-    
+        self.date = date
+        self.outfile = output_netcdf
+        self.pool_size = 24
+        self.coordinateList = []
+        self.temporaryList = []
 
     def pixel2coord(self, row, col):
         
@@ -39,16 +41,15 @@ class CreateModisNetCDF(input_image, output_netcdf, date):
         returns
         
         ------
-        xp, yp: x and y coordinates repectively for each pixel.
+        xp, yp: x and y coordinates respectively for each pixel.
         
         """
         
         ul_x, res_x, distort_x, ul_y, distort_y, res_y = self.ds.GetGeoTransform()
-        xp=(res_x*col)+ul_x
-        yp=(res_y*row)+ul_y
-        return(xp, yp)
-    
-    
+        xp = (res_x*col)+ul_x
+        yp = (res_y*row)+ul_y
+        return xp, yp
+
     def createNetCDF(self):
         """
         Pool visible and swir (for cloud detection bands)
@@ -66,19 +67,17 @@ class CreateModisNetCDF(input_image, output_netcdf, date):
         None
         
         """
-        arr=self.ds.ReadAsArray()
-        visible_band=arr[0, :, :]
-        swir_band=arr[1, :, :]
-        pool=self.pool_size
+        arr = self.ds.ReadAsArray()
+        visible_band = arr[0, :, :]
+        swir_band = arr[1, :, :]
+        pool = self.pool_size
 
+        cloudPooled = skimage.measure.block_reduce(swir_band, (pool, pool), np.mean)
+        cloud_classified = np.where(cloudPooled > 130, 1, 0)
         
-        cloudPooled=skimage.measure.block_reduce(swir_band, (pool,pool), np.mean)
-        cloud_classified=np.where(cloudPooled>130, 1 ,0)
-        
-        ice_pooled=skimage.measure.block_reduce(visible_band, (pool, pool), np.mean)
-        
-        
-        classify=np.where(visible_band<25, 1, np.where((visible_band>25)&(visible_band<51), 2, 
+        ice_pooled = skimage.measure.block_reduce(visible_band, (pool, pool), np.mean)
+
+        classify=np.where(visible_band<25, 1, np.where((visible_band>25)&(visible_band<51), 2,
                                      np.where((visible_band>51)&(visible_band<76), 3,
                                      np.where((visible_band>76)&(visible_band<101), 4, 
                                      np.where((visible_band>101)&(visible_band<127), 5,
@@ -97,35 +96,36 @@ class CreateModisNetCDF(input_image, output_netcdf, date):
                                      np.where((ice_pooled>152)&(ice_pooled<177), 7, 
                                      np.where((ice_pooled>177)&(ice_pooled<203), 8,
                                      np.where((ice_pooled>203)&(ice_pooled<229), 9,10)))))))))
-        
-        
 
-
-        coordinateList=self.coordinateList
-        listTemp=self.temporaryList
+        coordinateList = self.coordinateList
+        listTemp = self.temporaryList
         print(classifyPooled.shape[0], classifyPooled.shape[1])
         for i in range(classifyPooled.shape[0]):
             for j in range(classifyPooled.shape[1]):
-                outCoord=a.pixel2coord((i*pool),(j*pool))
-                outVal=classifyPooled[i,j]
-                cloudVal=cloud_classified[i,j]
-                time=self.date
-                listTemp=[outCoord[0], outCoord[1], time, outVal, cloudVal]
+                outCoord = a.pixel2coord((i*pool), (j*pool))
+                outVal = classifyPooled[i, j]/10.
+                cloudVal = cloud_classified[i, j]
+                time = self.date
+                listTemp = [outCoord[0], outCoord[1], time, outVal, cloudVal]
                 coordinateList.append(listTemp)
-        
-        
+
         df = pd.DataFrame(coordinateList)
         df.columns = ["long", "lat", "time", "iceArea", "cloud"]
-        df = df[['long', 'lat', 'iceArea', 'cloud', 'time']]
-        df = df.set_index(['lat', 'long', 'time'])
+        df = df[["long", "lat", "time", "iceArea", "cloud"]]
+        df = df.set_index(["long", "lat", "time"])
         ncdf = xr.Dataset.from_dataframe(df)
-        outfile=self.outfile
+        outfile = self.outfile
         print("Saving to file:", outfile)
         ncdf.to_netcdf(outfile)
-        
 
-input_image=""
-output_netcdf""
-date=""
-a=CreateModisNetCDF(input_image, output_netcdf, date)
+
+if len(sys.argv) < 4:
+    print("Please provide 3 arguments: input file, output file and date.")
+    sys.exit(0)
+
+
+input_image = sys.argv[1]
+output_netcdf = sys.argv[2]
+date = sys.argv[3]
+a = CreateModisNetCDF(input_image, output_netcdf, date)
 a.createNetCDF()

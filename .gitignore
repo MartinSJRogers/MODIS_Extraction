@@ -1,2 +1,6 @@
 # We don't store this as it's "generated" from iterate.sh
 /iterate/template.xml
+# Outputs not to be committed
+*.tiff
+*.csv
+*.nc
