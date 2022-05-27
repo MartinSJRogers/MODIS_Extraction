@@ -124,7 +124,7 @@ if __name__ == '__main__':
     parser.add_argument("--input_image", "-i", type=str)
     parser.add_argument("--output_netcdf", "-o", type=str)
     parser.add_argument("--pool_size", "-p", default=1, type=int)
-    parser.add_argument("--image_date", "-d", default="01-01-2021", type=str)
+    parser.add_argument("--image_date", "-d", default="2021-01-01", type=str)
     args = parser.parse_args()
     
     a=CreateModisNetCDF(args.input_image, args.output_netcdf, args.pool_size, args.image_date)
